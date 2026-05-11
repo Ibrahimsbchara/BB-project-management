@@ -1,6 +1,6 @@
 # Allow this app to be embedded in an iframe from any origin
 Header always unset X-Frame-Options
-Header always set Content-Security-Policy "frame-ancestors *"
+Header always set Content-Security-Policy "frame-ancestors https: http: 'self'"
 
 # CORS — allow the ERP frontend to call api.php directly
 Header always set Access-Control-Allow-Origin "*"
