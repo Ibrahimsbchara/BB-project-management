@@ -1,0 +1,13 @@
+# Allow this app to be embedded in an iframe from any origin
+Header always unset X-Frame-Options
+Header always set Content-Security-Policy "frame-ancestors *"
+
+# CORS — allow the ERP frontend to call api.php directly
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type"
+
+# Handle OPTIONS preflight requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
