@@ -266,17 +266,19 @@ try {
                 foreach ($t['custom_fields'] ?? [] as $cf) {
                     if (stripos($cf['name'], 'department') !== false) {
                         if ($cf['type'] === 'drop_down') {
-                            $idx = $cf['value'] ?? null;
-                            if ($idx !== null) {
+                            $val = $cf['value'] ?? null;
+                            if ($val !== null) {
                                 foreach ($cf['type_config']['options'] ?? [] as $opt) {
-                                    if ((int)$opt['orderindex'] === (int)$idx) {
+                                    // ClickUp may return value as UUID string OR as orderindex integer
+                                    if ((string)$opt['id'] === (string)$val
+                                        || (int)$opt['orderindex'] === (int)$val) {
                                         $dept = $opt['name'];
                                         break;
                                     }
                                 }
                             }
-                        } elseif (isset($cf['value']) && is_string($cf['value']) && $cf['value'] !== '') {
-                            $dept = $cf['value'];
+                        } elseif (isset($cf['value']) && $cf['value'] !== null && (string)$cf['value'] !== '') {
+                            $dept = (string)$cf['value'];
                         }
                         break;
                     }
