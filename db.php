@@ -19,6 +19,7 @@ function getDb(): PDO {
     // Migrate existing DBs
     try { $db->exec("ALTER TABLE tasks ADD COLUMN department TEXT NOT NULL DEFAULT 'General'"); } catch (\Throwable $e) {}
     try { $db->exec("ALTER TABLE tasks ADD COLUMN source_id TEXT"); } catch (\Throwable $e) {}
+    try { $db->exec("ALTER TABLE tasks ADD COLUMN contribution TEXT NOT NULL DEFAULT ''"); } catch (\Throwable $e) {}
 
     // Rename medium → normal to match ClickUp naming
     try { $db->exec("UPDATE tasks SET priority='normal' WHERE priority='medium'"); } catch (\Throwable $e) {}

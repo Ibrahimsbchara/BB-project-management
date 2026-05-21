@@ -92,6 +92,12 @@ try {
             $task = $db->query("SELECT * FROM tasks WHERE id=$id")->fetch(PDO::FETCH_ASSOC);
             jsonOut(['success' => true, 'task' => $task]);
 
+        case 'update_contribution':
+            $id   = (int) ($input['id'] ?? 0);
+            $stmt = $db->prepare("UPDATE tasks SET contribution=? WHERE id=?");
+            $stmt->execute([$input['contribution'] ?? '', $id]);
+            jsonOut(['success' => true]);
+
         case 'delete_task':
             $id   = (int) ($input['id'] ?? 0);
             $stmt = $db->prepare("DELETE FROM tasks WHERE id=?");

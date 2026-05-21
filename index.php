@@ -233,6 +233,10 @@
   .tc-info { width: 28px; height: 28px; border-radius: 7px; border: 1.5px solid #e5e7eb; background: #fff; color: #9ca3af; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
   .tc-info:hover { border-color: #111827; color: #111827; }
   .over-label { position: absolute; right: 14px; top: 9px; font-size: 10px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.06em; }
+  .contribution-input { display: block; width: 100%; margin-top: 7px; padding: 5px 0 0; border: none; border-top: 1px dashed #e5e7eb; background: transparent; font-size: 12px; color: #6b7280; font-family: inherit; outline: none; resize: none; }
+  .contribution-input::placeholder { color: #d1d5db; }
+  .contribution-input:focus { color: #111827; border-top-color: #a5b4fc; }
+  .filter-group-label { font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; align-self: center; white-space: nowrap; }
   .sprint-submit-row { margin-top: 18px; display: flex; justify-content: flex-end; }
 
   /* SETTINGS */
@@ -409,12 +413,14 @@
   </div>
 
   <div class="filter-bar">
+    <span class="filter-group-label">Priority</span>
     <button class="filter-chip active" data-f="all"    onclick="setFilter('all')">All</button>
     <button class="filter-chip" data-f="urgent"        onclick="setFilter('urgent')">Urgent</button>
     <button class="filter-chip" data-f="high"          onclick="setFilter('high')">High</button>
     <button class="filter-chip" data-f="normal"        onclick="setFilter('normal')">Normal</button>
     <button class="filter-chip" data-f="low"           onclick="setFilter('low')">Low</button>
   </div>
+  <div class="filter-bar" id="dept-filter-bar" style="margin-top:-8px"></div>
 
   <div class="section-label">Tasks</div>
   <div class="task-list" id="task-list">
@@ -581,7 +587,7 @@
   /* ---- STATE ---- */
   let tasks = [], capacity = 70, sprintLocked = false;
   let selectedPriority = 'normal', editingId = null, deletingId = null;
-  let activeFilter = 'all', modalTaskId = null;
+  let activeFilter = 'all', deptFilter = 'all', modalTaskId = null;
   let categories = [], departments = [];
 
   /* Import state */
@@ -624,14 +630,15 @@
     let pri = t.priority || 'normal';
     if (pri === 'medium') pri = 'normal';
     return {
-      id:       parseInt(t.id),
-      name:     t.name,
-      desc:     t.description || 'No description provided.',
-      effort:   parseFloat(t.effort),
-      tag:      t.category   || 'General',
-      dept:     t.department || 'General',
-      priority: pri,
-      accepted: parseInt(t.accepted) === 1,
+      id:           parseInt(t.id),
+      name:         t.name,
+      desc:         t.description || 'No description provided.',
+      effort:       parseFloat(t.effort),
+      tag:          t.category     || 'General',
+      dept:         t.department   || 'General',
+      priority:     pri,
+      accepted:     parseInt(t.accepted) === 1,
+      contribution: t.contribution || '',
     };
   }
 
@@ -987,16 +994,33 @@
   /* ---- DASHBOARD ---- */
   function setFilter(f) {
     activeFilter = f;
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.f === f));
+    document.querySelectorAll('#view-dashboard .filter-chip[data-f]').forEach(c => c.classList.toggle('active', c.dataset.f === f));
     renderDashboard();
+  }
+
+  function setDeptFilter(d) {
+    deptFilter = d;
+    document.querySelectorAll('#dept-filter-bar .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.d === d));
+    renderDashboard();
+  }
+
+  function renderDeptFilterBar() {
+    const bar   = document.getElementById('dept-filter-bar');
+    const depts = [...new Set(tasks.map(t => t.dept))].sort();
+    if (depts.length <= 1) { bar.innerHTML = ''; return; }
+    bar.innerHTML = `<span class="filter-group-label">Dept</span>
+      <button class="filter-chip ${deptFilter==='all'?'active':''}" data-d="all" onclick="setDeptFilter('all')">All</button>
+      ${depts.map(d => `<button class="filter-chip ${deptFilter===d?'active':''}" data-d="${esc(d)}" onclick="setDeptFilter('${esc(d)}')">${esc(d)}</button>`).join('')}`;
   }
 
   function renderDashboard() {
     const list = document.getElementById('task-list');
     document.getElementById('lock-banner').style.display       = sprintLocked ? 'flex' : 'none';
     document.getElementById('sprint-submit-row').style.display = sprintLocked ? 'none' : 'flex';
-    const filtered = activeFilter === 'all' ? tasks
-      : tasks.filter(t => t.priority === activeFilter || (activeFilter === 'normal' && t.priority === 'medium'));
+    renderDeptFilterBar();
+    let filtered = tasks;
+    if (activeFilter !== 'all') filtered = filtered.filter(t => t.priority === activeFilter || (activeFilter === 'normal' && t.priority === 'medium'));
+    if (deptFilter !== 'all')   filtered = filtered.filter(t => t.dept === deptFilter);
     if (!filtered.length) {
       list.innerHTML = '<div style="color:#d1d5db;font-size:14px;padding:32px;text-align:center;border:1.5px dashed #e5e7eb;border-radius:10px">No tasks yet.</div>';
       return;
@@ -1016,11 +1040,23 @@
             <span class="tc-tag">${esc(t.tag)}</span>
             <span class="tc-dept">${esc(t.dept)}</span>
           </div>
+          <input class="contribution-input" type="text"
+                 value="${esc(t.contribution)}"
+                 placeholder="Add contribution (e.g. Revenue +10%, Cost -5%)"
+                 onclick="event.stopPropagation()"
+                 onblur="saveContribution(${t.id}, this.value)">
         </div>
         <div class="tc-hrs">${t.effort} hrs</div>
         <button class="tc-info" onclick="openDescPopover(event,${t.id})" title="Show description">i</button>
       </div>`;
     }).join('');
+  }
+
+  async function saveContribution(id, val) {
+    const t = tasks.find(x => x.id === id);
+    if (!t || t.contribution === val) return;
+    t.contribution = val;
+    await api('update_contribution', { id, contribution: val });
   }
 
   async function toggleAccept(id) {
