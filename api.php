@@ -256,12 +256,33 @@ try {
                 $cuPriRaw = strtolower($t['priority']['priority'] ?? 'normal');
                 $priority = $priorityMap[$cuPriRaw] ?? 'normal';
 
+                $dept = 'General';
+                foreach ($t['custom_fields'] ?? [] as $cf) {
+                    if (stripos($cf['name'], 'department') !== false) {
+                        if ($cf['type'] === 'drop_down') {
+                            $idx = $cf['value'] ?? null;
+                            if ($idx !== null) {
+                                foreach ($cf['type_config']['options'] ?? [] as $opt) {
+                                    if ((int)$opt['orderindex'] === (int)$idx) {
+                                        $dept = $opt['name'];
+                                        break;
+                                    }
+                                }
+                            }
+                        } elseif (isset($cf['value']) && is_string($cf['value']) && $cf['value'] !== '') {
+                            $dept = $cf['value'];
+                        }
+                        break;
+                    }
+                }
+
                 return [
                     'cu_id'            => $t['id'],
                     'name'             => $t['name'],
                     'description'      => trim(strip_tags($t['description'] ?? '')),
                     'priority'         => $priority,
-                    'effort'           => $effortHrs,   // null = no estimate anywhere in task/subtasks
+                    'effort'           => $effortHrs,
+                    'department'       => $dept,
                     'already_imported' => isset($existingSet[$t['id']]),
                 ];
             }, $allTasks);
@@ -278,17 +299,20 @@ try {
                               ->fetchAll(PDO::FETCH_COLUMN);
             $existingSet = array_flip($existingIds);
 
+            $deptStmt = $db->prepare("INSERT OR IGNORE INTO departments (name) VALUES (?)");
             $stmt = $db->prepare("INSERT INTO tasks (name, description, category, department, priority, effort, source_id)
                                   VALUES (:name, :desc, :cat, :dept, :pri, :eff, :sid)");
             $imported = 0;
             foreach ($incoming as $t) {
                 $sid = $t['cu_id'] ?? null;
                 if ($sid && isset($existingSet[$sid])) continue;
+                $deptName = $t['department'] ?? 'General';
+                if ($deptName && $deptName !== 'General') $deptStmt->execute([$deptName]);
                 $stmt->execute([
                     ':name' => $t['name']        ?? 'Untitled',
                     ':desc' => $t['description'] ?? '',
                     ':cat'  => $t['tag']         ?? 'General',
-                    ':dept' => $t['department']  ?? 'General',
+                    ':dept' => $deptName,
                     ':pri'  => $t['priority']    ?? 'normal',
                     ':eff'  => (float) ($t['effort'] ?? 1),
                     ':sid'  => $sid,

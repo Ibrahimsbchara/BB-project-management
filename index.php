@@ -275,6 +275,7 @@
   .import-task-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .import-effort { font-size: 12px; color: #9ca3af; white-space: nowrap; }
   .already-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #16a34a; background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 1px 6px; }
+  .import-dept-badge { font-size: 10px; font-weight: 600; color: #6d28d9; background: #ede9fe; border: 1px solid #c4b5fd; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
   .pri-badge-sm { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
   .pri-badge-sm.low    { background: #eff6ff; color: #3b82f6; }
   .pri-badge-sm.normal { background: #fffbeb; color: #d97706; }
@@ -1208,6 +1209,7 @@
                 <div class="tc-dot ${t.priority}"></div>
                 <div class="import-task-name" title="${esc(t.name)}">${esc(t.name)}</div>
                 <div class="import-task-right">
+                  ${t.department && t.department !== 'General' ? `<span class="import-dept-badge">${esc(t.department)}</span>` : ''}
                   <span class="pri-badge-sm ${t.priority}">${cap(t.priority)}</span>
                   ${t.already_imported
                     ? '<span class="already-badge">Imported</span>'
@@ -1289,7 +1291,7 @@
       priority:    t.priority,
       effort:      t.effort !== null ? t.effort : 1,
       tag:         'General',
-      department:  'General',
+      department:  t.department || 'General',
     }));
 
     try {
