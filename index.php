@@ -1006,11 +1006,11 @@
 
   function renderDeptFilterBar() {
     const bar   = document.getElementById('dept-filter-bar');
+    if (!tasks.length) { bar.innerHTML = ''; return; }
     const depts = [...new Set(tasks.map(t => t.dept))].sort();
-    if (depts.length <= 1) { bar.innerHTML = ''; return; }
     bar.innerHTML = `<span class="filter-group-label">Dept</span>
       <button class="filter-chip ${deptFilter==='all'?'active':''}" data-d="all" onclick="setDeptFilter('all')">All</button>
-      ${depts.map(d => `<button class="filter-chip ${deptFilter===d?'active':''}" data-d="${esc(d)}" onclick="setDeptFilter('${esc(d)}')">${esc(d)}</button>`).join('')}`;
+      ${depts.map(d => `<button class="filter-chip ${deptFilter===d?'active':''}" data-d="${esc(d)}" onclick="setDeptFilter(this.dataset.d)">${esc(d)}</button>`).join('')}`;
   }
 
   function renderDashboard() {
